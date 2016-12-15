@@ -64,7 +64,7 @@ static uint32_t	objID_len = 4U;
 static TEE_ObjectHandle secretKey;
 
 /* IV */
-static uint8_t	iv[16];
+static uint8_t	iv[BLOCK_SIZE];
 
 /*
  * brief:       TA_CreateEntryPoint
@@ -75,7 +75,7 @@ static uint8_t	iv[16];
 TEE_Result TA_CreateEntryPoint(void)
 {
 	TEE_Result		res;
-	uint8_t			keyData[16];
+	uint8_t			keyData[KEY_SIZE / 8];
 	TEE_ObjectHandle	object;
 	
 	/* Opens a handle on an existing persistent object. */
@@ -182,7 +182,7 @@ static TEE_Result ReadSecretKey(void)
 {
 	TEE_Result		res;
 	TEE_Attribute		attrs[1];
-	uint8_t			keyData[16];
+	uint8_t			keyData[KEY_SIZE / 8];
 	uint32_t		readSize;
 	TEE_ObjectHandle	object;
 	
@@ -209,7 +209,7 @@ static TEE_Result ReadSecretKey(void)
 		/* Create key handle */
 		if (res == (TEE_Result)TEE_SUCCESS) {
 			TEE_InitRefAttribute(&attrs[0], TEE_ATTR_SECRET_VALUE, (void*)keyData, sizeof(keyData));
-			res = TEE_AllocateTransientObject(TEE_TYPE_AES, KEY_SIZE, &secretKey);
+			res = TEE_AllocateTransientObject(TEE_TYPE_DES, KEY_SIZE, &secretKey);
 			if (res != (TEE_Result)TEE_SUCCESS) {
 				EMSG("Error TEE_AllocateTransientObject\n");
 			}
@@ -270,10 +270,10 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sessionContext, uint32_t commandID,
 	if (res == (TEE_Result)TEE_SUCCESS) {
 		switch(Algo) {
 		case ALGO_ECB:
-			Algo = (uint32_t)TEE_ALG_AES_ECB_NOPAD;
+			Algo = (uint32_t)TEE_ALG_DES_ECB_NOPAD;
 			break;
 		case ALGO_CBC:
-			Algo = (uint32_t)TEE_ALG_AES_CBC_NOPAD;
+			Algo = (uint32_t)TEE_ALG_DES_CBC_NOPAD;
 			break;
 		default:
 			EMSG("Unsupported algorithm=%d\n", Algo);
@@ -307,15 +307,19 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sessionContext, uint32_t commandID,
 		if (res != (TEE_Result)TEE_SUCCESS) {
 			EMSG("Error TEE_AllocateOperation maxKeySize=%d\n", info.maxKeySize);
 		}
+		IMSG("TEE_AllocateOperation() returned.\n");
 	}
 	if (res == (TEE_Result)TEE_SUCCESS) {
 		res = TEE_SetOperationKey(op, secretKey);
 		if (res != (TEE_Result)TEE_SUCCESS) {
 			EMSG("Error TEE_SetOperationKey\n");
 		}
+		IMSG("TEE_SetOperationKey() returned.\n");
 	}
 	if (res == (TEE_Result)TEE_SUCCESS) {
+		IMSG("***** ---> Calling TEE_CipherInit()\n");
 		TEE_CipherInit(op, iv, sizeof(iv));
+		IMSG("***** <--- returned from TEE_CipherInit()\n");
 		
 		pos = 0U;
 		Remainder = inbuf_size;

@@ -51,7 +51,7 @@ enum TEEC_CommandId {
 #define MODE_ENC	0U
 #define MODE_DEC	1U
 
-#define BLOCK_SIZE	16U
-#define KEY_SIZE	128U
+#define BLOCK_SIZE	8U
+#define KEY_SIZE	56U
 
 #endif /* COMMON_H */
